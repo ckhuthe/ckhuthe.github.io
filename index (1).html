@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACS Rowing Info Centre</title>
+  <meta name="description" content="ACS Rowing Info Centre: schedules, regattas, results and club notices.">
+  <meta name="theme-color" content="#0b2545">
+
+  <!-- App name card and icons (this is what makes it installable) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ACS Rowing">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0b2545; }
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    /* Slim bar that only appears when there is something useful to offer */
+    #bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #0b2545;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+    #bar.show { display: flex; }
+    #bar .msg { flex: 1 1 200px; }
+    #bar button {
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #f1c232;
+      color: #0b2545;
+    }
+    #bar button.close { background: transparent; color: #ffffff; font-size: 18px; padding: 4px 8px; }
+    #bar button[hidden] { display: none; }
+    #app { flex: 1; width: 100%; border: 0; background: #f0f3f8; }
+  </style>
+
+  <!-- OneSignal: sends the push notifications -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function (OneSignal) {
+      try {
+        await OneSignal.init({ appId: "3811ffa0-19bf-4e26-903d-fc67fe8d557d" });
+        OneSignal.Notifications.addEventListener("permissionChange", function () {
+          if (window._acsRefresh) window._acsRefresh();
+        });
+      } catch (e) {}
+      if (window._acsRefresh) window._acsRefresh();
+    });
+
+    // Android/Chrome offers an "install" prompt; catch it early so we can show our own button
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      window._acsInstall = e;
+      if (window._acsRefresh) window._acsRefresh();
+    });
+  </script>
+</head>
+<body>
+  <div id="bar" role="region" aria-label="App tips">
+    <span class="msg" id="msg"></span>
+    <button type="button" id="btnInstall" hidden>Install app</button>
+    <button type="button" id="btnNotify" hidden>Turn on notifications</button>
+    <button type="button" id="btnClose" class="close" aria-label="Close">&#10005;</button>
+  </div>
+
+  <iframe
+    id="app"
+    src="https://script.google.com/macros/s/AKfycbzX-WciK9A87JE_Xi3FAcARBVKXtDoI8Wkk0xpmtPTR5cCMtJIX252Qs1HaBPIL-SJh/exec"
+    title="ACS Rowing Info Centre"
+    allow="clipboard-write">
+  </iframe>
+
+  <script>
+    (function () {
+      var bar = document.getElementById("bar");
+      var msg = document.getElementById("msg");
+      var btnNotify = document.getElementById("btnNotify");
+      var btnInstall = document.getElementById("btnInstall");
+      var btnClose = document.getElementById("btnClose");
+
+      var ua = navigator.userAgent || "";
+      var isIOS = /iphone|ipad|ipod/i.test(ua) ||
+                  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var isStandalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+                         window.navigator.standalone === true;
+      var dismissed = false;
+      try { dismissed = sessionStorage.getItem("acsBarDismissed") === "1"; } catch (e) {}
+
+      function permission() {
+        return ("Notification" in window) ? Notification.permission : "unsupported";
+      }
+
+      function refresh() {
+        var text = "";
+        var showNotify = false;
+        var showInstall = false;
+        var perm = permission();
+
+        if (isIOS && !isStandalone) {
+          // iPhones only allow notifications once the app is on the Home Screen
+          text = "To get notifications on iPhone: tap the Share button, choose \"Add to Home Screen\", then open ACS Rowing from your home screen.";
+        } else {
+          if (perm === "default") showNotify = true;
+          if (window._acsInstall && !isStandalone) showInstall = true;
+
+          if (perm === "denied") {
+            text = "Notifications are blocked for this app. You can switch them back on in your phone's settings.";
+          } else if (showNotify && showInstall) {
+            text = "Add this app to your home screen and turn on notifications.";
+          } else if (showNotify) {
+            text = "Get a notification when schedules or calendars change.";
+          } else if (showInstall) {
+            text = "Add ACS Rowing to your home screen.";
+          }
+        }
+
+        msg.textContent = text;
+        btnNotify.hidden = !showNotify;
+        btnInstall.hidden = !showInstall;
+        if (text && !dismissed) { bar.classList.add("show"); } else { bar.classList.remove("show"); }
+      }
+      window._acsRefresh = refresh;
+
+      btnNotify.addEventListener("click", function () {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(function (OneSignal) {
+          var p = OneSignal.Notifications.requestPermission();
+          if (p && p.then) { p.then(refresh, refresh); } else { refresh(); }
+        });
+      });
+
+      btnInstall.addEventListener("click", function () {
+        var ev = window._acsInstall;
+        if (!ev) return;
+        ev.prompt();
+        ev.userChoice.then(function () { window._acsInstall = null; refresh(); });
+      });
+
+      btnClose.addEventListener("click", function () {
+        dismissed = true;
+        try { sessionStorage.setItem("acsBarDismissed", "1"); } catch (e) {}
+        refresh();
+      });
+
+      window.addEventListener("appinstalled", function () { window._acsInstall = null; refresh(); });
+
+      refresh();
+    })();
+  </script>
+</body>
+</html>

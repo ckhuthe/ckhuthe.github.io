@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "ACS Rowing Info Centre",
+  "short_name": "ACS Rowing",
+  "description": "Schedules, regattas, results and club notices for ACS Rowing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fcfcfa",
+  "theme_color": "#0b2545",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
